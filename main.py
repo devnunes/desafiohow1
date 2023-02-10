@@ -14,14 +14,20 @@ results = pd.read_csv("./dataset/results.csv")
 homeColumn = results["home_team"].unique()
 awayColumn = results["away_team"].unique()
 teamsDF = pd.DataFrame({"Teams": np.concatenate((homeColumn, awayColumn))})
-teamsTable = pd.DataFrame({"Teams": teamsDF["Teams"].unique()}).sort_values(
-    by=["Teams"]
-)
+teamsTable = pd.DataFrame({"name": teamsDF["Teams"].unique()}).sort_values(by=["name"])
 teamsTable.to_csv("tables/teams.csv", index=False)
 
 
 # %%
 # Country
-countriesDF = pd.DataFrame({"Countries": results["country"].unique()})
-print(countriesDF)
+countriesDF = pd.DataFrame({"name": results["country"].unique()}).sort_values(
+    by=["name"]
+)
+print(countriesDF.shape)
 countriesDF.to_csv("tables/countries.csv", index=False)
+
+# %%
+# City
+citiesDF = pd.DataFrame({"name": results["city"].unique()}).sort_values(by=["name"])
+print(citiesDF.shape)
+citiesDF.to_csv("tables/cities.csv", index=False)
