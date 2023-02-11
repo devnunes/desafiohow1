@@ -184,11 +184,25 @@ SELECT count(*) FROM "Cities"
 SELECT count(*) FROM "Tournaments";
 select count(*) FROM "Teams";
 SELECT count(*) FROM "Matchs";
-SELECT * FROM "Matchs";
+SELECT date, id FROM "Matchs";
 SELECT * FROM "Scores";
-SELECT count(*) FROM "Matchs_scores";
+SELECT ms.match_id, ms.score_id FROM "Matchs_scores" ms;
+SELECT * FROM "Matchs_scores";
 SELECT * FROM "Goals";
 
+-- Select Results rebuilded
+select
+	m.date, homet.name, awayt.name, s.home_score, s.away_score, t."name", city.name, country."name", m.neutral 
+from "Matchs" m
+	join "Matchs_scores" ms on ms.match_id = m.id
+	join "Scores" s on s.id = ms.score_id
+	join "Teams" homet on homet.id = m.home_team_id 
+	join "Teams" awayt on awayt.id = m.away_team_id
+	join "Tournaments" t ON t.id = m.tournament_id
+	join "Cities" city ON m.city_id = city.id 
+	join "Countries" country ON m.country_id  = country.id;
+
+-- Select Players
 SELECT
 	m.date,
 	home_team."name" as "home_team",
@@ -202,26 +216,11 @@ inner join "Matchs_scores" ms on ms.match_id = m.id
 inner join "Goals" g on ms.id = g.match_score_id
 INNER JOIN "Teams" team_goal ON g.team_id = team_goal.id;
 
-SELECT
-	m.date,
-	home_team."name" as "home_team",
-	away_team."name" as "away_team",
-	home_score,
-	away_score,
-	team_goal.name as "team_goal"
-FROM "Matchs" m
-INNER JOIN "Teams" home_team ON m.home_team_id = home_team.id
-INNER JOIN "Teams" away_team ON m.away_team_id = away_team.id
-inner join "Matchs_scores" ms on ms.match_id = m.id
-inner join "Goals" g on ms.id = g.match_score_id
-INNER JOIN "Teams" team_goal ON g.team_id = team_goal.id;
+select m.date, m.id, s.id, s.home_score, s.away_score, homet."name" as "home", awayt."name" as "away"
+	from "Matchs" m
+	join "Scores" s on s.home_score = m.home_score and s.away_score = m.away_score
+	inner join "Teams" homet on m.home_team_id = homet.id 
+	inner join "Teams" awayt on m.away_team_id = awayt.id;
 
 drop schema public cascade;
 create schema public;
-
-SELECT
-	m.id,
-	m.date,
-	t.name
-	FROM "Matchs" m
-	INNER JOIN "Teams" t ON m.away_team_id = t.id
