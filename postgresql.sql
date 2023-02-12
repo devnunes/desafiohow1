@@ -17,7 +17,7 @@ create table "Goalscores" (
 	"away_team" varchar(100) null,
 	"team" varchar(100) null,
 	"scorer" varchar(300) null,
-	"minute" varchar(4),
+	"minute" int4,
 	"own_goal" BOOLEAN,
 	"penalty" BOOLEAN
 );
@@ -53,11 +53,11 @@ create table "Teams" (
 -- Import dataset/results.csv into results table
 SELECT * FROM "Results";
 
--- Import dataset/goalscores.csv into results table
-SELECT * FROM "Goalscores";
-
 -- Import dataset/shootouts.csv into results table
 SELECT * FROM "Shootouts";
+
+-- Import tables/goalscorersCleaned.csv into results table
+SELECT * FROM "Goalscores";
 
 -- import from tables/teams.csv
 SELECT * FROM "Teams";
@@ -177,19 +177,6 @@ insert into "Goals" (player, minute, own_goal, penalty, team_id, match_score_id)
 	join "Teams" t on t."name" = g.team
 	join "Matchs_scores" ms on ms."match_id" = m.id;
 
--- Selects
-SELECT count(*) FROM "Results";
-SELECT count(*) FROM "Countries";
-SELECT count(*) FROM "Cities"
-SELECT count(*) FROM "Tournaments";
-select count(*) FROM "Teams";
-SELECT count(*) FROM "Matchs";
-SELECT date, id FROM "Matchs";
-SELECT * FROM "Scores";
-SELECT ms.match_id, ms.score_id FROM "Matchs_scores" ms;
-SELECT * FROM "Matchs_scores";
-SELECT * FROM "Goals";
-
 -- Select Results rebuilded
 select
 	m.date, homet.name, awayt.name, s.home_score, s.away_score, t."name", city.name, country."name", m.neutral 
@@ -202,7 +189,32 @@ from "Matchs" m
 	join "Cities" city ON m.city_id = city.id 
 	join "Countries" country ON m.country_id  = country.id;
 
--- Select Players
+select
+	m.date, homet.name, awayt.name, s.home_score, s.away_score, t."name", city.name, country."name", m.neutral 
+from "Matchs" m
+	join "Matchs_scores" ms on ms.match_id = m.id
+	join "Scores" s on s.id = ms.score_id
+	join "Teams" homet on homet.id = m.home_team_id 
+	join "Teams" awayt on awayt.id = m.away_team_id
+	join "Tournaments" t ON t.id = m.tournament_id
+	join "Cities" city ON m.city_id = city.id 
+	join "Countries" country ON m.country_id  = country.id;
+
+
+-- Selects
+SELECT count(*) FROM "Results";
+SELECT count(*) FROM "Countries";
+SELECT count(*) FROM "Cities"
+SELECT count(*) FROM "Tournaments";
+select count(*) FROM "Teams";
+SELECT count(*) FROM "Matchs";
+SELECT date, id FROM "Matchs";
+SELECT * FROM "Scores";
+SELECT count(*) FROM "Scores";
+SELECT * FROM "Matchs_scores" ms;
+SELECT count(*) FROM "Matchs_scores";
+SELECT count(*) FROM "Goals";
+
 SELECT
 	m.date,
 	home_team."name" as "home_team",
@@ -222,5 +234,280 @@ select m.date, m.id, s.id, s.home_score, s.away_score, homet."name" as "home", a
 	inner join "Teams" homet on m.home_team_id = homet.id 
 	inner join "Teams" awayt on m.away_team_id = awayt.id;
 
+
+WITH "cte_matchs" AS (
+select
+  m.date,
+  homet.name as home_team,
+  awayt.name as away_team,
+  s.home_score,
+  s.away_score,
+  t."name" as tournament,
+  city.name as city,
+  country."name" as country,
+  m.neutral 
+from "Matchs" m
+	join "Matchs_scores" ms on ms.match_id = m.id
+	join "Scores" s on s.id = ms.score_id
+	join "Teams" homet on homet.id = m.home_team_id 
+	join "Teams" awayt on awayt.id = m.away_team_id
+	join "Tournaments" t ON t.id = m.tournament_id
+	join "Cities" city ON m.city_id = city.id 
+	join "Countries" country ON m.country_id  = country.id
+	order by m.date
+	)
+select
+	date,
+	home_team,
+	away_team,
+	home_score,
+	away_score,
+	tournament,
+	country
+	from
+	"cte_matchs" cte
+	where cte.home_team = 'Wales';
+
+select * from "Teams" where "name" = ''
+
+WITH "cte_matchs_home" AS (
+select
+  m.date,
+  homet.name as home_team,
+  awayt.name as away_team,
+  s.home_score,
+  s.away_score,
+  t."name" as tournament,
+  city.name as city,
+  country."name" as country,
+  m.neutral 
+from "Matchs" m
+	join "Matchs_scores" ms on ms.match_id = m.id
+	join "Scores" s on s.id = ms.score_id
+	join "Teams" homet on homet.id = m.home_team_id 
+	join "Teams" awayt on awayt.id = m.away_team_id
+	join "Tournaments" t ON t.id = m.tournament_id
+	join "Cities" city ON m.city_id = city.id 
+	join "Countries" country ON m.country_id  = country.id
+	order by m.date
+	)
+select
+	date,
+	home_team,
+	home_score,
+	away_score,
+	away_team,
+	tournament,
+	country
+	from
+	"cte_matchs_home" cte
+	where cte.home_team = 'Wales';
+
+	WITH "cte_matchs_away" AS (
+select
+  m.date,
+  homet.name as home_team,
+  awayt.name as away_team,
+  s.home_score,
+  s.away_score,
+  t."name" as tournament,
+  city.name as city,
+  country."name" as country,
+  m.neutral 
+from "Matchs" m
+	join "Matchs_scores" ms on ms.match_id = m.id
+	join "Scores" s on s.id = ms.score_id
+	join "Teams" homet on homet.id = m.home_team_id 
+	join "Teams" awayt on awayt.id = m.away_team_id
+	join "Tournaments" t ON t.id = m.tournament_id
+	join "Cities" city ON m.city_id = city.id 
+	join "Countries" country ON m.country_id  = country.id
+	order by m.date
+	)
+select
+	date,
+	home_team,
+	home_score,
+	away_score,
+	away_team,
+	tournament,
+	country
+	from
+	"cte_matchs_away" cte
+	where cte.home_team = 'Wales';
+
+WITH "cte_matchs_home" AS (
+select
+  m.date,
+  homet.name as home_team,
+  s.home_score
+from "Matchs" m
+	join "Matchs_scores" ms on ms.match_id = m.id
+	join "Scores" s on s.id = ms.score_id
+	join "Teams" homet on homet.id = m.home_team_id 
+	join "Teams" awayt on awayt.id = m.away_team_id
+	order by m.date
+	)
+select
+	date,
+	home_team,
+	home_score
+	from
+	"cte_matchs_home" cte
+	where cte.home_team = 'Wales';
+
+WITH "cte_matchs_home" AS (
+select
+  homet.name as home_team,
+  s.home_score,
+  t."name" as tournament
+from "Matchs" m
+	join "Matchs_scores" ms on ms.match_id = m.id
+	join "Scores" s on s.id = ms.score_id
+	join "Teams" homet on homet.id = m.home_team_id 
+	join "Teams" awayt on awayt.id = m.away_team_id
+  join "Tournaments" t ON t.id = m.tournament_id
+	order by m.date
+	)
+select
+	home_team,
+	tournament,
+	avg(home_score)
+	from
+	"cte_matchs_home" cte
+	where cte.home_team = 'Brasil'
+  GROUP BY home_team, tournament
+  
+WITH "cte_matchs_home" AS (
+select
+  homet.name as home_team,
+  s.home_score,
+  t."name" as tournament
+from "Matchs" m
+	join "Matchs_scores" ms on ms.match_id = m.id
+	join "Scores" s on s.id = ms.score_id
+	join "Teams" homet on homet.id = m.home_team_id 
+	join "Teams" awayt on awayt.id = m.away_team_id
+    join "Tournaments" t ON t.id = m.tournament_id
+	order by m.date
+	)
+select
+	tournament,
+	avg(home_score)
+	from
+	"cte_matchs_home" cte
+	where cte.home_team = 'Brasil'
+  GROUP BY tournament;
+
+WITH "cte_home_score" AS (
+select
+  m.date,
+  homet.name as home_team,  
+  s.home_score,
+  s.away_score,
+  awayt.name as away_team,
+  t."name" as tournament
+from "Matchs" m
+	join "Matchs_scores" ms on ms.match_id = m.id
+	join "Scores" s on s.id = ms.score_id
+	join "Teams" homet on homet.id = m.home_team_id 
+	join "Teams" awayt on awayt.id = m.away_team_id
+	join "Tournaments" t ON t.id = m.tournament_id
+	join "Cities" city ON m.city_id = city.id 
+	join "Countries" country ON m.country_id  = country.id
+	where homet.name = 'Brazil' 
+	order by m.date
+	),
+	"cte_away_score" as (
+	select
+  m.date,
+  homet.name as home_team,  
+  s.home_score,
+  s.away_score,
+  awayt.name as away_team,
+  t."name" as tournament
+from "Matchs" m
+	join "Matchs_scores" ms on ms.match_id = m.id
+	join "Scores" s on s.id = ms.score_id
+	join "Teams" homet on homet.id = m.home_team_id 
+	join "Teams" awayt on awayt.id = m.away_team_id
+	join "Tournaments" t ON t.id = m.tournament_id
+	join "Cities" city ON m.city_id = city.id 
+	join "Countries" country ON m.country_id  = country.id
+	where awayt.name = 'Brazil' 
+	order by m.date	
+	)
+select
+	date,
+	home_team,
+	home_score,
+	tournament
+	from
+	"cte_home_score"
+	union 
+	select
+	date,
+	away_team,
+	away_score,
+	tournament
+	from
+	"cte_away_score"
+	
+WITH "cte_home_score" AS (
+select
+  m.date,
+  homet.name as team,  
+  s.home_score as score,
+  t."name" as tournament
+from "Matchs" m
+	join "Matchs_scores" ms on ms.match_id = m.id
+	join "Scores" s on s.id = ms.score_id
+	join "Teams" homet on homet.id = m.home_team_id 
+	join "Teams" awayt on awayt.id = m.away_team_id
+	join "Tournaments" t ON t.id = m.tournament_id
+	join "Cities" city ON m.city_id = city.id 
+	join "Countries" country ON m.country_id  = country.id
+	where homet.name = 'Brazil' 
+), "cte_away_score" as (
+select
+  m.date,
+  s.away_score as score,
+  awayt.name as team,
+  t."name" as tournament
+from "Matchs" m
+	join "Matchs_scores" ms on ms.match_id = m.id
+	join "Scores" s on s.id = ms.score_id
+	join "Teams" homet on homet.id = m.home_team_id 
+	join "Teams" awayt on awayt.id = m.away_team_id
+	join "Tournaments" t ON t.id = m.tournament_id
+	join "Cities" city ON m.city_id = city.id 
+	join "Countries" country ON m.country_id  = country.id
+	where awayt.name = 'Brazil'
+	), "cte_brazil_matchs" as (
+	select
+	date,
+	team,
+	score,
+	tournament
+	from
+	"cte_home_score"
+	union 
+	select
+	date,
+	team,
+	score,
+	tournament
+	from
+	"cte_away_score"
+	)
+	select
+	team,
+	tournament,
+	avg(score)
+	from "cte_brazil_matchs"
+	GROUP BY team, tournament;
+
+
+	
 drop schema public cascade;
 create schema public;
