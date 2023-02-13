@@ -18,12 +18,9 @@
 ## 📝 Sumário
 
 - [Sobre](#sobre)
-- [Getting Started](#getting_started)
-- [Deployment](#deployment)
+- [Primeiros passos](#primeiros_passos)
 - [Usage](#usage)
 - [Built Using](#built_using)
-- [TODO](../TODO.md)
-- [Contributing](../CONTRIBUTING.md)
 - [Authors](#authors)
 - [Acknowledgments](#acknowledgement)
 
@@ -31,9 +28,11 @@
 
 Esse projeto faz parte do processo avaliativo do bootcamp da How para finalizar o curso. Ele consiste em pegar dados de um desafio do Kaggle e transformar os dados em algo visual onde se possa extrair informações relevantes.
 
-## 🏁 Getting Started <a name = "getting_started"></a>
+## 🏁 Primeiros passos <a name = "primeiros_passos"></a>
 
-These instructions will get you a copy of the project up and running on your local machine for development and testing purposes. See [deployment](#deployment) for notes on how to deploy the project on a live system.
+Neste projeto você precisará ter um ambiente de programação em python configurado no terminal de sua escolha.
+O projeto foi desenvolvido no WSL2, terminal UBuntu 20 no Windows 11, e por isso os passos aqui descritos são pensados para esse ambiente.
+Porém você pode executar no terminal de sua preferência.
 
 ### Prerequisites
 
@@ -44,6 +43,14 @@ Give examples
 ```
 
 ### Installing
+
+Crie o ambiente do python
+
+python3 -m venv .venv
+
+ative o ambiente python
+
+source ./venv/bin/activate
 
 A step by step series of examples that tell you how to get a development env running.
 
@@ -60,10 +67,6 @@ until finished
 ```
 
 End with an example of getting some data out of the system or using it for a little demo.
-
-## 🔧 Running the tests <a name = "tests"></a>
-
-Explain how to run the automated tests for this system.
 
 ### Break down into end to end tests
 
@@ -85,20 +88,18 @@ Give an example
 
 Add notes about how to use the system.
 
-## 🚀 Deployment <a name = "deployment"></a>
-
-Add additional notes about how to deploy this on a live system.
-
 ## ⛏️ Built Using <a name = "built_using"></a>
 
-- [docker-compose]() - Database
-- [Express](https://expressjs.com/) - Server Framework
-- [VueJs](https://vuejs.org/) - Web Framework
-- [NodeJs](https://nodejs.org/en/) - Server Environment
+- [Docker](https://www.docker.com/) - microserviço
+- [PostgreSql](https://www.postgresql.org/) - Banco de dados
+- [Pandas](https://pandas.pydata.org/) - Lib de análise de dados
+- [NumPy](https://numpy.org/) - Lib de manipulação de dados
+- [Grafana](https://grafana.com/) - Ferramenta de visualização de dados
 
 ## ✍️ Authors <a name = "authors"></a>
 
 - [@devnunes](https://github.com/devnunes)
+- [@rafaelporfiriobarros](https://github.com/rafaelporfiriobarros)
 
 ## 🎉 Acknowledgements <a name = "acknowledgement"></a>
 
