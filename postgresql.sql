@@ -23,7 +23,7 @@ create table "Goalscores" (
 );
 -- drop table "Goalscores" 
 
-create table "Shootouts" (
+create table "Shootouts_csv" (
 	"date" date,
 	"home_team" varchar(100) null,
 	"away_team" varchar(100) null,
@@ -54,7 +54,7 @@ create table "Teams" (
 SELECT * FROM "Results";
 
 -- Import dataset/shootouts.csv into results table
-SELECT * FROM "Shootouts";
+SELECT * FROM "Shootouts_csv";
 
 -- Import tables/goalscorersCleaned.csv into results table
 SELECT * FROM "Goalscores";
@@ -130,6 +130,18 @@ create table "Goals" (
 
 -- drop table "Goals"
 
+create table "Shootouts" (
+	"match_score_id" int4,
+	"team_id" int4,
+	id serial PRIMARY key,
+	CONSTRAINT fk_match_shootout
+		FOREIGN  KEY(match_score_id)
+			REFERENCES "Matchs_scores"(id),
+	CONSTRAINT fk_team_winner
+		FOREIGN  KEY(team_id)
+			REFERENCES "Teams"(id)
+)
+
 -- Insert data from results 
 insert into "Countries" (name) select distinct ("country") from "Results";
 
@@ -177,6 +189,26 @@ insert into "Goals" (player, minute, own_goal, penalty, team_id, match_score_id)
 	join "Teams" t on t."name" = g.team
 	join "Matchs_scores" ms on ms."match_id" = m.id;
 
+WITH "cte_matchs_shootouts" AS (
+	select
+	m.id,
+	m.date,
+	t1."name" as "home_team",
+	t2."name" as "away_team"
+	FROM "Matchs" m
+	INNER JOIN "Teams" t1 ON m.home_team_id = t1.id
+	INNER JOIN "Teams" t2 ON m.away_team_id = t2.id
+	)
+insert into "Shootouts" (team_id,match_score_id) 
+	select t.id, ms.id
+	from "cte_matchs_shootouts" s
+	join "Shootouts_csv" sc on sc."date" = s."date" and sc.home_team = s.home_team and sc.away_team = s.away_team
+	join "Teams" t on t."name" = sc.winner
+	join "Matchs_scores" ms on ms."match_id" = s.id;
+
+select * from "Shootouts"
+
+
 -- Select Results rebuilded
 select
 	m.date, homet.name, awayt.name, s.home_score, s.away_score, t."name", city.name, country."name", m.neutral 
@@ -208,12 +240,30 @@ SELECT count(*) FROM "Cities"
 SELECT count(*) FROM "Tournaments";
 select count(*) FROM "Teams";
 SELECT count(*) FROM "Matchs";
-SELECT date, id FROM "Matchs";
-SELECT * FROM "Scores";
-SELECT count(*) FROM "Scores";
-SELECT * FROM "Matchs_scores" ms;
-SELECT count(*) FROM "Matchs_scores";
 SELECT count(*) FROM "Goals";
+select count(*) from "Shootouts"
+SELECT count(*) FROM "Matchs";
+SELECT count(*) FROM "Matchs_scores";
+SELECT count(*) FROM "Scores";
+SELECT * FROM "Scores";
+SELECT * FROM "Matchs_scores" ms;
+SELECT * FROM "Matchs_scores";
+select * from "Shootouts"
+SELECT date, id FROM "Matchs";
+select
+	count(g.id),
+	g.player,
+	team.name,
+	tour.name
+	FROM "Goals" g
+	inner join "Matchs_scores" ms ON ms.id = g.match_score_id 
+	inner join "Matchs" m on m.id = ms.match_id
+	inner join "Tournaments" tour on tour.id = m.tournament_id
+	inner join "Teams" team ON team.id = g.team_id 
+	where g.team_id = 39
+	group by g.player, team."name", tour.name
+	
+
 
 WITH "cte_matchs_away" AS (
 select
@@ -302,8 +352,6 @@ from "Matchs" m
 	avg(score)
 	from "cte_brazil_matchs"
 	GROUP BY team, tournament;
-
-
 	
 drop schema public cascade;
 create schema public;
