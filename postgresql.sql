@@ -54,7 +54,7 @@ create table "Teams" (
 SELECT * FROM "Results";
 
 -- Import dataset/shootouts.csv into results table
-SELECT * FROM "Shootouts_csv";
+SELECT * FROM "Shootouts";
 
 -- Import tables/goalscorersCleaned.csv into results table
 SELECT * FROM "Goalscores";
@@ -261,9 +261,7 @@ select
 	inner join "Tournaments" tour on tour.id = m.tournament_id
 	inner join "Teams" team ON team.id = g.team_id 
 	where g.team_id = 39
-	group by g.player, team."name", tour.name
-	
-
+	group by g.player, team."name", tour.name;
 
 WITH "cte_matchs_away" AS (
 select
@@ -353,5 +351,9 @@ from "Matchs" m
 	from "cte_brazil_matchs"
 	GROUP BY team, tournament;
 	
+drop table "Results";
+drop table "Shootouts_csv";
+drop table "Goalscores";
+
 drop schema public cascade;
 create schema public;
