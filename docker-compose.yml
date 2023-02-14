@@ -2,11 +2,11 @@ version: "3"
 services:
   db:
     image: postgres
-    container_name: "pg_container"
+    container_name: "pg_container" # host de coneção com o Grafana pg_container:5432
     environment:
-      - POSTGRES_USER=root
+      - POSTGRES_USER=root # Usuário e senha para confgiração do Grafana
       - POSTGRES_PASSWORD=root
-      - POSTGRES_DB=desafio1_db
+      - POSTGRES_DB=desafio1_db # database a ser conectada no Grafana
     ports:
       - "5432:5432"
     volumes:
