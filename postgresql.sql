@@ -205,12 +205,12 @@ insert into "Goals" (player, minute, own_goal, penalty, match_id, team_id)
 	join "Teams" t on t."name" = g.team;
 
 -- Selects
-SELECT count(*) FROM "Results";
+
 SELECT count(*) FROM "Countries";
-SELECT count(*) FROM "Cities"
+SELECT count(*) FROM "Cities";
 SELECT count(*) FROM "Tournaments";
 select count(*) FROM "Teams";
-select count(*) from "Shootouts"
+select count(*) from "Shootouts";
 SELECT count(*) FROM "Scores";
 SELECT count(*) FROM "Matchs";
 SELECT count(*) FROM "Goals";
