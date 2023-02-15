@@ -76,22 +76,6 @@ SELECT * FROM "Teams";
 -- Import dataset/shootouts.csv into results table
 SELECT * FROM "Shootouts_csv";
 
-create table "Shootouts" (
-	"date" date,	
-	"team_id" int4,
-	"home_team" varchar(100) null,
-	"away_team" varchar(100) null, 
-	id serial PRIMARY key,
-	CONSTRAINT fk_team_winner
-		FOREIGN  KEY(team_id)
-			REFERENCES "Teams"(id)
-);
-
-insert into "Shootouts" (date, team_id, home_team, away_team)
-	select sc."date", t.id, sc.home_team, sc.away_team
-	from "Teams" t 
-	join "Shootouts_csv" sc on t."name" = sc.winner;
-
 -- import from tables/scores.csv
 SELECT * FROM "Scores";
 
@@ -126,10 +110,7 @@ create table "Matchs" (
 			REFERENCES "Countries"(id),
 	CONSTRAINT fk_score_match
 		FOREIGN  KEY(score_id)
-			REFERENCES "Scores"(id),
-	CONSTRAINT fk_shootout_match
-		FOREIGN  KEY(shootout_id)
-			REFERENCES "Shootouts"(id)
+			REFERENCES "Scores"(id)
 );
 
 insert into "Matchs"
@@ -159,8 +140,22 @@ insert into "Matchs"
 	join "Cities" city ON r.city = city."name"
 	join "Countries" country ON r.country = country."name"
 	join "Scores" sco ON r.home_score = sco.home_score and r.away_score = sco.away_score;
+drop table "Shootouts";
+drop table "Matchs" 
+create table "Shootouts" (
+	"team_id" int4,
+	"match_id" int4,
+	id serial PRIMARY key,
+	CONSTRAINT fk_team_winner
+		FOREIGN  KEY(team_id)
+			REFERENCES "Teams"(id),
+	CONSTRAINT fk_match_shootout
+		FOREIGN  KEY(match_id)
+			REFERENCES "Matchs"(id)
+); 
 
-with "cte_match_teams" as (
+
+WITH "cte_matchs" AS (
 	SELECT
 	m.id,
 	m.date,
@@ -169,26 +164,13 @@ with "cte_match_teams" as (
 	FROM "Matchs" m
 	INNER JOIN "Teams" t1 ON m.home_team_id = t1.id
 	INNER JOIN "Teams" t2 ON m.away_team_id = t2.id
-), "cte_shootouts" as(
-	select
-		shoot.id as "shoot_id",
-		cte_mt.id as "match_id"
-	from "Shootouts" shoot
-	join "cte_match_teams" cte_mt on cte_mt.date = shoot.date and cte_mt.home_team = shoot.home_team and cte_mt.away_team = shoot.away_team
-)
-update "Matchs"
-	set "shootout_id" = cte_s."shoot_id"
-	from (select * from "cte_shootouts") as cte_s
-	WHERE 
-    	"Matchs".id = cte_s.match_id;
+	)
+insert into "Shootouts" (team_id, match_id)
+	select t.id, m.id
+	from "cte_matchs" m
+	join "Shootouts_csv" sc on sc.date = m.date and sc.home_team = m.home_team and sc.away_team = m.away_team
+	join "Teams" t ON t."name" = sc.winner; 
 
---	join "cte_match_teams" m on m.date = shoot.date and m.home_team = shoot.home_team and m.away_team = shoot.away_team
-alter table "Shootouts"
-	drop column "date";
-alter table "Shootouts"
-	drop column "home_team";
-alter table "Shootouts"
-	drop column "away_team";
 
 create table "Goals" (
 	"player" varchar(100),
@@ -204,9 +186,7 @@ create table "Goals" (
 	CONSTRAINT fk_team_player
 		FOREIGN  KEY(team_id)
 			REFERENCES "Teams"(id)
-);
-drop table "Matchs"
--- Insert data from results 
+); 
 
 WITH "cte_matchs" AS (
 	SELECT
@@ -259,30 +239,67 @@ FROM "Goals" g
 	inner join "Teams" t3 ON t3.id = g.team_id 
 	inner join "Scores" s ON s.id = m.score_id
 	inner join "Tournaments" tour ON tour.id = m.tournament_id
-	order by m."date" 
+	order by m."date";
 
-	-- Select Results rebuilded
+
+-- Dashboards do Grafana
+
+-- Média de gols (Por campeonato)
+WITH "cte_home_score" AS (
 select
-	m.date, homet.name, awayt.name, s.home_score, s.away_score, t."name", city.name, country."name", m.neutral 
+  m.date,
+  homet.name as team,  
+  s.home_score as score,
+  t."name" as tournament
 from "Matchs" m
 	join "Scores" s on s.id = m.score_id
 	join "Teams" homet on homet.id = m.home_team_id 
+	join "Tournaments" t ON t.id = m.tournament_id
+	where homet.name = 'Brazil' 
+), "cte_away_score" as (
+select
+  m.date,
+  s.away_score as score,
+  awayt.name as team,
+  t."name" as tournament
+from "Matchs" m
+	join "Scores" s on s.id = m.score_id
 	join "Teams" awayt on awayt.id = m.away_team_id
 	join "Tournaments" t ON t.id = m.tournament_id
-	join "Cities" city ON m.city_id = city.id 
-	join "Countries" country ON m.country_id  = country.id;
+	where awayt.name = 'Brazil'
+	), "cte_brazil_matchs" as (
+	select
+	date,
+	team,
+	score,
+	tournament
+	from
+	"cte_home_score"
+	union 
+	select
+	date,
+	team,
+	score,
+	tournament
+	from
+	"cte_away_score"
+	)
+	select
+	tournament as "Campeonato",
+	avg(score) as "Média"
+	from "cte_brazil_matchs"
+	GROUP BY tournament;
 
+-- Médias de gols em casa (Por Campeonato)
 WITH "cte_home_score" AS (
   select
     m.date,
     homet.name as team,
-    s.home_score as score,
-    t."name" as tournament
+    s.home_score as score
   from
     "Matchs" m
     join "Scores" s on s.id = m.score_id
     join "Teams" homet on homet.id = m.home_team_id
-    join "Tournaments" t ON t.id = m.tournament_id
   where
     homet.name = 'Brazil'
 ),
@@ -290,13 +307,11 @@ WITH "cte_home_score" AS (
   select
     m.date,
     s.away_score as score,
-    awayt.name as team,
-    t."name" as tournament
+    awayt.name as team
   from
     "Matchs" m
     join "Scores" s on s.id = m.score_id
     join "Teams" awayt on awayt.id = m.away_team_id
-    join "Tournaments" t ON t.id = m.tournament_id
   where
     awayt.name = 'Brazil'
 ),
@@ -304,27 +319,130 @@ WITH "cte_home_score" AS (
   select
     date,
     team,
-    score,
-    tournament
+    score
   from
     "cte_home_score"
   union
   select
     date,
     team,
-    score,
-    tournament
+    score
   from
     "cte_away_score"
 )
 select
-  tournament as "Campeonato",
-  avg(score) as "Média"
+  avg(score) as "Média",
+  max(score) as "Total"
+from
+  "cte_brazil_matchs";
+
+-- Médias de gols em casa (Total)
+ WITH "cte_home_score" AS (
+  select
+    m.date,
+    homet.name as team,
+    s.home_score as score
+  from
+    "Matchs" m
+    join "Scores" s on s.id = m.score_id
+    join "Teams" homet on homet.id = m.home_team_id
+  where
+    homet.name = 'Brazil'
+),
+"cte_away_score" as (
+  select
+    m.date,
+    s.away_score as score,
+    awayt.name as team
+  from
+    "Matchs" m
+    join "Scores" s on s.id = m.score_id
+    join "Teams" awayt on awayt.id = m.away_team_id
+  where
+    awayt.name = 'Brazil'
+),
+"cte_brazil_matchs" as (
+  select
+    date,
+    team,
+    score
+  from
+    "cte_home_score"
+  union
+  select
+    date,
+    team,
+    score
+  from
+    "cte_away_score"
+)
+select
+  avg(score) as "Média",
+  max(score) as "Total"
 from
   "cte_brazil_matchs"
-GROUP BY
-  tournament;
 
+-- Médias de gols fora de casa (Total)
+WITH "cte_home_score" AS (
+  select
+    m.date,
+    homet.name as team,
+    s.home_score as score
+  from
+    "Matchs" m
+    join "Scores" s on s.id = m.score_id
+    join "Teams" homet on homet.id = m.away_team_id
+  where
+    homet.name = 'Brazil'
+),
+"cte_away_score" as (
+  select
+    m.date,
+    s.away_score as score,
+    awayt.name as team
+  from
+    "Matchs" m
+    join "Scores" s on s.id = m.score_id
+    join "Teams" awayt on awayt.id = m.away_team_id
+  where
+    awayt.name = 'Brazil'
+),
+"cte_brazil_matchs" as (
+  select
+    date,
+    team,
+    score
+  from
+    "cte_home_score"
+  union
+  select
+    date,
+    team,
+    score
+  from
+    "cte_away_score"
+)
+select
+  avg(score) as "Média",
+  max(score) as "Total"
+from
+  "cte_brazil_matchs"
+
+-- Quantidade de gols (Por Jogador)
+select
+	g.player as "Jogador",
+	count(g.id) as "Quantidade de gols",
+	tour.name as "campeonato"
+FROM "Goals" g
+	inner join "Matchs" m ON m.id = g.match_id 
+	inner join "Tournaments" tour ON tour.id = m.tournament_id
+  where
+    g.team_id = 39
+  group by
+    g.player,
+    tour.name;
+ 
+-- Média de gols fora de casa
 with "cte_away_score" as (
   select
     m.date,
@@ -346,70 +464,64 @@ from
   "cte_away_score"
 GROUP BY
   tournament;
+    
+-- Quantidade de jogos (Casa Vs. Visitante)
+ select
+  t.name as "Time da casa",
+  t2."name" as "Time Visitante",
+  count(*) as "Quantidade de jogos"
+from
+  "Matchs" m2
+  inner join "Teams" t ON t.id = m2.home_team_id
+  inner join "Teams" t2 ON t2.id = m2.away_team_id
+group by
+  "Time da casa",
+  "Time Visitante";
+ 
+ -- Quantidade de jogos vencidos por penalti
+  select
+  t3.name as "Vencedor dos penaltis",
+  t."name" as "Campeonato",
+  count(*) as "Partidas Vitóriosas"
+from
+  "Matchs" m
+  inner join "Shootouts" s2 ON s2.match_id = m.id
+  INNER JOIN "Teams" t3 ON s2.team_id = t3.id
+  INNER JOIN "Tournaments" t ON m.tournament_id = t.id
+  group by "Vencedor dos penaltis", "Campeonato"
+  order by "Partidas Vitóriosas" desc;
+ 
+-- Quantidade de jogos por países
+ select
+  country."name" as "País",
+  count(m.id) as "Número de partidas"
+from
+  "Matchs" m
+  join "Countries" country ON m.country_id = country.id
+	group by country.name
+  order by "Número de partidas";
+ 
+-- Quantidade de jogos por países
+ select
+  country."name" as "País",
+  count(m.id) as "Número de partidas"
+from
+  "Matchs" m
+  join "Countries" country ON m.country_id = country.id
+	group by country.name
+  order by "Número de partidas";
+  
+-- Select Results rebuilded
+select
+	m.date, homet.name, awayt.name, s.home_score, s.away_score, t."name", city.name, country."name", m.neutral 
+from "Matchs" m
+	join "Scores" s on s.id = m.score_id
+	join "Teams" homet on homet.id = m.home_team_id 
+	join "Teams" awayt on awayt.id = m.away_team_id
+	join "Tournaments" t ON t.id = m.tournament_id
+	join "Cities" city ON m.city_id = city.id 
+	join "Countries" country ON m.country_id  = country.id;
 
- with "teste" as (
- select distinct t.id as "home", t2.id as "away"
- 	from "Matchs" m
-	inner join "Teams" t ON t.id = m.home_team_id 
-	inner join "Teams" t2 ON t2.id = m.away_team_id
- ), "teste2" as (
- 	select count(*) from "Matchs" m
- 		where m.home_team_id = ()
- )
- select * from "teste"
- 	group by home, away
-
-with "teste" as (
-	select 
-		t.name as "home",
-		t2.name as "away",
-		count(*) as "count"
-		from "Matchs" m
-		inner join "Teams" t ON t.id = m.home_team_id 
-		inner join "Teams" t2 ON t2.id = m.away_team_id
-		group by home, away
-		union all 
-		select 
-		t2.name as "home",
-		t.name as "away",
-		count(*) as "count"
-		from "Matchs" m
-		inner join "Teams" t ON t.id = m.home_team_id 
-		inner join "Teams" t2 ON t2.id = m.away_team_id
-		group by home, away
- ), "teste2" as(
-	select  
-	concat(
-	"home",
-	' X ',
-	"away") as "chave",
-	count
-	from "teste" m
-	)
-	select chave, count 
-	from "teste2"
-	where chave = (select distinct chave from teste)
-	and chave like 'En%'
-	and chave like 'Es%'
-	order by chave;
-
-with "teste" as (
-select t.home_team_id as "h", t.away_team_id as "a"
-from "Matchs" t
-join (
-    select home_team_id, away_team_id, count(*) from (
-      select home_team_id, away_team_id from "Matchs" where home_team_id <= away_team_id
-      union all
-      select away_team_id, home_team_id from "Matchs" where home_team_id > away_team_id) x
-    group by home_team_id, away_team_id
-    having count(*) > 1) y
-  on (t.home_team_id = y.home_team_id and t.away_team_id = y.away_team_id)
-    or (t.home_team_id = y.away_team_id and t.away_team_id = y.home_team_id)
- )
- 	select distinct  * from "teste";
-
-	
-	
  
 drop schema public cascade;
 create schema public;
