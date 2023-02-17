@@ -215,6 +215,39 @@ SELECT count(*) FROM "Scores";
 SELECT count(*) FROM "Matchs";
 SELECT count(*) FROM "Goals";
 
+with "cte_countrie" as (SELECT count(*) as "countrie" FROM "Countries"),
+"cte_cities" as (SELECT count(*) as "cities" FROM "Cities"),
+"cte_tournaments" as (SELECT count(*) as "tournaments" FROM "Tournaments"),
+"cte_teams" as (select count(*) as "teams" FROM "Teams"),
+"cte_shootouts" as (select count(*) as "shootouts" FROM "Shootouts"),
+"cte_scores" as (SELECT count(*) as "scores" FROM "Scores"),
+"cte_matchs" as (SELECT count(*) as "matchs" FROM "Matchs"),
+"cte_goals" as (SELECT count(*) as "goals" FROM "Goals")
+SELECT * FROM
+cte_countrie
+UNION
+SELECT * FROM
+cte_cities
+UNION
+SELECT * FROM
+cte_tournaments
+UNION
+SELECT * FROM
+cte_teams
+UNION
+SELECT * FROM
+cte_shootouts
+UNION
+SELECT * FROM
+cte_scores
+UNION
+SELECT * FROM
+cte_matchs
+UNION
+SELECT * FROM
+cte_goals
+
+
 SELECT * FROM "Scores";
 select * from "Shootouts";
 
@@ -246,143 +279,82 @@ FROM "Goals" g
 
 -- Média de gols (Por campeonato)
 WITH "cte_home_score" AS (
+  select
+    m.date,
+    homet.name as team,
+    s.home_score as score,
+    t."name" as tournament
+  from
+    "Matchs" m
+    join "Scores" s on s.id = m.score_id
+    join "Teams" homet on homet.id = m.home_team_id
+    join "Tournaments" t ON t.id = m.tournament_id
+  where
+    homet.name = 'Brazil'
+),
+"cte_away_score" as (
+  select
+    m.date,
+    s.away_score as score,
+    awayt.name as team,
+    t."name" as tournament
+  from
+    "Matchs" m
+    join "Scores" s on s.id = m.score_id
+    join "Teams" awayt on awayt.id = m.away_team_id
+    join "Tournaments" t ON t.id = m.tournament_id
+  where
+    awayt.name = 'Brazil'
+),
+"cte_brazil_matchs" as (
+  select
+    date,
+    team,
+    score,
+    tournament
+  from
+    "cte_home_score"
+  union
+  select
+    date,
+    team,
+    score,
+    tournament
+  from
+    "cte_away_score"
+)
 select
-  m.date,
-  homet.name as team,  
-  s.home_score as score,
-  t."name" as tournament
-from "Matchs" m
-	join "Scores" s on s.id = m.score_id
-	join "Teams" homet on homet.id = m.home_team_id 
-	join "Tournaments" t ON t.id = m.tournament_id
-	where homet.name = 'Brazil' 
-), "cte_away_score" as (
-select
-  m.date,
-  s.away_score as score,
-  awayt.name as team,
-  t."name" as tournament
-from "Matchs" m
-	join "Scores" s on s.id = m.score_id
-	join "Teams" awayt on awayt.id = m.away_team_id
-	join "Tournaments" t ON t.id = m.tournament_id
-	where awayt.name = 'Brazil'
-	), "cte_brazil_matchs" as (
-	select
-	date,
-	team,
-	score,
-	tournament
-	from
-	"cte_home_score"
-	union 
-	select
-	date,
-	team,
-	score,
-	tournament
-	from
-	"cte_away_score"
-	)
-	select
-	tournament as "Campeonato",
-	avg(score) as "Média"
-	from "cte_brazil_matchs"
-	GROUP BY tournament;
+  tournament as "Campeonato",
+  avg(score) as "Média"
+from
+  "cte_brazil_matchs"
+GROUP BY
+  tournament;
 
 -- Médias de gols em casa (Por Campeonato)
 WITH "cte_home_score" AS (
   select
     m.date,
     homet.name as team,
-    s.home_score as score
+    s.home_score as score,
+    t."name" as tournament
   from
     "Matchs" m
     join "Scores" s on s.id = m.score_id
     join "Teams" homet on homet.id = m.home_team_id
+    join "Tournaments" t ON t.id = m.tournament_id
   where
     homet.name = 'Brazil'
-),
-"cte_away_score" as (
-  select
-    m.date,
-    s.away_score as score,
-    awayt.name as team
-  from
-    "Matchs" m
-    join "Scores" s on s.id = m.score_id
-    join "Teams" awayt on awayt.id = m.away_team_id
-  where
-    awayt.name = 'Brazil'
-),
-"cte_brazil_matchs" as (
-  select
-    date,
-    team,
-    score
-  from
-    "cte_home_score"
-  union
-  select
-    date,
-    team,
-    score
-  from
-    "cte_away_score"
 )
 select
-  avg(score) as "Média",
-  max(score) as "Total"
+  tournament as "Campeonato",
+  avg(score) as "Média"
 from
-  "cte_brazil_matchs";
+  "cte_home_score"
+GROUP BY
+  tournament;
 
 -- Médias de gols em casa (Total)
- WITH "cte_home_score" AS (
-  select
-    m.date,
-    homet.name as team,
-    s.home_score as score
-  from
-    "Matchs" m
-    join "Scores" s on s.id = m.score_id
-    join "Teams" homet on homet.id = m.home_team_id
-  where
-    homet.name = 'Brazil'
-),
-"cte_away_score" as (
-  select
-    m.date,
-    s.away_score as score,
-    awayt.name as team
-  from
-    "Matchs" m
-    join "Scores" s on s.id = m.score_id
-    join "Teams" awayt on awayt.id = m.away_team_id
-  where
-    awayt.name = 'Brazil'
-),
-"cte_brazil_matchs" as (
-  select
-    date,
-    team,
-    score
-  from
-    "cte_home_score"
-  union
-  select
-    date,
-    team,
-    score
-  from
-    "cte_away_score"
-)
-select
-  avg(score) as "Média",
-  max(score) as "Total"
-from
-  "cte_brazil_matchs"
-
--- Médias de gols fora de casa (Total)
 WITH "cte_home_score" AS (
   select
     m.date,
@@ -391,11 +363,18 @@ WITH "cte_home_score" AS (
   from
     "Matchs" m
     join "Scores" s on s.id = m.score_id
-    join "Teams" homet on homet.id = m.away_team_id
+    join "Teams" homet on homet.id = m.home_team_id
   where
     homet.name = 'Brazil'
-),
-"cte_away_score" as (
+)
+select
+  avg(score) as "Média",
+  max(score) as "Total"
+from
+  "cte_home_score"
+
+-- Médias de gols fora de casa (Total)
+WITH "cte_away_score" as (
   select
     m.date,
     s.away_score as score,
@@ -406,43 +385,14 @@ WITH "cte_home_score" AS (
     join "Teams" awayt on awayt.id = m.away_team_id
   where
     awayt.name = 'Brazil'
-),
-"cte_brazil_matchs" as (
-  select
-    date,
-    team,
-    score
-  from
-    "cte_home_score"
-  union
-  select
-    date,
-    team,
-    score
-  from
-    "cte_away_score"
 )
 select
   avg(score) as "Média",
   max(score) as "Total"
 from
-  "cte_brazil_matchs"
-
--- Quantidade de gols (Por Jogador)
-select
-	g.player as "Jogador",
-	count(g.id) as "Quantidade de gols",
-	tour.name as "campeonato"
-FROM "Goals" g
-	inner join "Matchs" m ON m.id = g.match_id 
-	inner join "Tournaments" tour ON tour.id = m.tournament_id
-  where
-    g.team_id = 39
-  group by
-    g.player,
-    tour.name;
+  "cte_away_score"
  
--- Média de gols fora de casa
+-- Média de gols fora de casa (Por campeonato)
 with "cte_away_score" as (
   select
     m.date,
@@ -513,14 +463,23 @@ from
   
 -- Select Results rebuilded
 select
-	m.date, homet.name, awayt.name, s.home_score, s.away_score, t."name", city.name, country."name", m.neutral 
-from "Matchs" m
-	join "Scores" s on s.id = m.score_id
-	join "Teams" homet on homet.id = m.home_team_id 
-	join "Teams" awayt on awayt.id = m.away_team_id
-	join "Tournaments" t ON t.id = m.tournament_id
-	join "Cities" city ON m.city_id = city.id 
-	join "Countries" country ON m.country_id  = country.id;
+  TO_CHAR(m.date:: DATE, 'dd/mm/yyyy') as "data",
+  homet.name as "Time da Casa",
+  awayt.name as "Time Visitante",
+  s.home_score as "Placar Casa",
+  s.away_score as "Placar Visitante",
+  t."name" as "Campeonato",
+  city.name as "Cidade",
+  country."name" as "País",
+  m.neutral
+from
+  "Matchs" m
+  join "Scores" s on s.id = m.score_id
+  join "Teams" homet on homet.id = m.home_team_id
+  join "Teams" awayt on awayt.id = m.away_team_id
+  join "Tournaments" t ON t.id = m.tournament_id
+  join "Cities" city ON m.city_id = city.id
+  join "Countries" country ON m.country_id = country.id;
 
  
 drop schema public cascade;
